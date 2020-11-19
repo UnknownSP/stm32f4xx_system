@@ -32,7 +32,6 @@ volatile uint8_t raspi_control_rcv[8] = {0,0,0,0,0,0,0,0};
 static uint8_t raspi_control_rcv_data[8] = {0,0,0,0,0,0,0,0};
 static bool raspi_control_flag = true;
 
-
 static
 int SY_init(void);
 static
@@ -43,6 +42,8 @@ static
 int SY_clockInit(void);
 static
 void SY_GPIOInit(void);
+static
+void SY_DMAInit(void);
 
 
 #if !_NO_DEVICE
@@ -52,14 +53,19 @@ int SY_doDevDriverTasks(void);
 
 int main(void){
   int ret,i,j;
+  //static int test = 0;
+  //static bool test_flag = false;
+  //static char test_data[8] = {'A','B','C','d','f','g','G','\n'};
 
   //システムを初期化します
   ret = SY_init();
   if( ret ){
     message("err", "initialize Faild%d", ret);
     MW_waitForMessageTransitionComplete(100);
+    MW_GPIOWrite(GPIOAID, GPIO_PIN_5 , GPIO_PIN_SET);
     return EXIT_FAILURE;
   }
+
   //(未実装)I2Cデバイスのチェックをします
   ret = SY_I2CConnTest(10);
   if( ret ){
@@ -80,9 +86,14 @@ int main(void){
     //ウォッチドックタイマーをリセットします
     MW_IWDGClr();//reset counter of watch dog  
 
+    //if( HAL_UART_Transmit_DMA(&huart2, (uint8_t*)test_data, sizeof(test_data)) == HAL_OK ){
+    //  MW_GPIOWrite(GPIOAID, GPIO_PIN_5 , GPIO_PIN_SET);
+    //}else{
+    //  MW_GPIOWrite(GPIOAID, GPIO_PIN_5 , GPIO_PIN_RESET);
+    //}
+
     //個々のアプリケーションの実行をします。
-    SY_doAppTasks();
-    //もしメッセージを出すタイミングであれば
+    SY_doAppTasks();  //もしメッセージを出すタイミングであれば  //if((g_SY_system_counter % 1000 == 0) && test_flag){  //  if(test == 0){  //    MW_GPIOWrite(GPIOAID, GPIO_PIN_5 , GPIO_PIN_SET);  //    test = 1;  //  }else if(test == 1){  //    MW_GPIOWrite(GPIOAID, GPIO_PIN_5 , GPIO_PIN_RESET);  //    test = 0;  //  }  //  test_flag = false;  //}else{  //  test_flag = true;  //}
     if( g_SY_system_counter % _MESSAGE_INTERVAL_MS < _INTERVAL_MS ){
 #if USE_RASPI_CONTROL
       if(raspi_control_flag){
@@ -110,33 +121,14 @@ int main(void){
     }
 #if !_NO_DEVICE
     //デバイスがあれば、各デバイスタスクを実行します。これはハンドラに格納されているデータをMDに転送する内容などが含まれます。
-#if DD_NUM_OF_LD
-    if(LED_OFF_SW()){
-      for(i=0;i<DD_NUM_OF_LD;i++){
-	for(j=0;j<8;j++){
-	  g_ld_h[i].mode[j] = D_LMOD_NONE;
-	}
-      }
-    }
-#endif
-      ret = SY_doDevDriverTasks();
+    ret = SY_doDevDriverTasks();
 #endif
     //エラー処理です
     if( ret ){
       message("err", "Device Driver Tasks Faild%d", ret);
-#if DD_NUM_OF_LD
-      for(i=0;i<DD_NUM_OF_LD;i++){
-	for(j=0;j<8;j++){
-	  g_ld_h[i].mode[j] = D_LMOD_BLINK_RED;
-	}
-	DD_I2C1Send(g_ld_h[i].add, g_ld_h[i].mode, 8);
-      }
-#endif
       return EXIT_FAILURE;
     }
-    //タイミング待ちを行います
-    while( g_SY_system_counter % _INTERVAL_MS != 0 ){
-    }
+    //タイミング待ちを行います  while( g_SY_system_counter % _INTERVAL_MS != 0 ){  }
     //もし一定時間以上応答がない場合はRCが切断されたとみなし、リセットをかけます。
 #if DD_USE_RC
     count_for_rc++;
@@ -197,8 +189,15 @@ int SY_init(void){
     return EXIT_FAILURE;
   }
 
+  SY_DMAInit();
+  /*Initialize GPIO*/
+  SY_GPIOInit();
+
   /*UART initialize*/
-  MW_USARTInit(USART2ID);
+  ret = MW_USARTInit(USART2ID);
+  if( ret ){
+    return EXIT_FAILURE;
+  }
 
 #if USE_RASPI_CONTROL
   MW_USARTSetBaudRate(USART3ID, 9600);
@@ -212,9 +211,6 @@ int SY_init(void){
     return ret;
   }
 #endif
-
-  /*Initialize GPIO*/
-  SY_GPIOInit();
 
   appInit();
   
@@ -253,8 +249,8 @@ int SY_init(void){
   
   /*initialize IWDG*/
   message("msg", "IWDG initialize");
-  MW_SetIWDGPrescaler(IWDG_PRESCALER_16);//clock 40kHz --> 1/16 -->2500Hz
-  MW_SetIWDGReload(250);//Reload volue is 250. reset time(100ms)
+  MW_SetIWDGPrescaler(IWDG_PRESCALER_4);//clock 32kHz --> 1/4 -->8000Hz
+  MW_SetIWDGReload(800);//Reload volue is 800. reset time(100ms)
   ret = MW_IWDGInit(); 
   if(ret){
     message("err", "IWDG initialize failed!\n");
@@ -280,13 +276,14 @@ int SY_clockInit(void){
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
   /** Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 84;
+  RCC_OscInitStruct.PLL.PLLN = 72;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -306,6 +303,13 @@ int SY_clockInit(void){
   {
     Error_Handler();
   }
+
+  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 1000);
+
+  //HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+
+  /* SysTick_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 
   return EXIT_SUCCESS;
 } /* SY_clockInit */
@@ -347,6 +351,14 @@ void SY_GPIOInit(void){
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : PA6 PA7 PA10 PA11 
+                           PA12 PA15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_10|GPIO_PIN_11 
+                          |GPIO_PIN_12|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pins : PC4 PC5 PC8 PC9 
                            PC10 PC11 PC12 */
   GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_9 
@@ -356,24 +368,47 @@ void SY_GPIOInit(void){
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB0 PB1 PB2 PB12 
-                           PB14 PB15 PB4 PB5 */
+                           PB14 PB15 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_12 
-                          |GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_4|GPIO_PIN_5;
+                          |GPIO_PIN_14|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PA10 PA11 PA12 PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_15;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PD2 */
   GPIO_InitStruct.Pin = GPIO_PIN_2;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+}
+
+static void SY_DMAInit(void) 
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+  /* DMA1_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+  /* DMA1_Stream7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
+  /* DMA2_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
+  /* DMA2_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream6_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream6_IRQn);
+
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle){
@@ -408,6 +443,6 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
-
+  MW_GPIOWrite(GPIOAID, GPIO_PIN_5 , GPIO_PIN_SET);
   /* USER CODE END Error_Handler_Debug */
 }

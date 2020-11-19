@@ -56,11 +56,12 @@ void flush(void){
   }
   if( outptr != 0 ){
     *outptr++ = '\n';
-#if USE_RASPI_CONTROL
+//#if USE_RASPI_CONTROL
+//    MW_USART2Transmit((uint8_t*)buff, outptr - buff);
+//#elif DD_USE_RC
+//    MW_USART2Transmit((uint8_t*)buff, outptr - buff);
+//#endif
     MW_USART2Transmit((uint8_t*)buff, outptr - buff);
-#elif DD_USE_RC
-    MW_USART2Transmit((uint8_t*)buff, outptr - buff);
-#endif
     had_completed = false;
   }
   outptr = buff;

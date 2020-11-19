@@ -9,7 +9,7 @@
 static IWDG_HandleTypeDef hiwdg = {
   .Instance = IWDG,
   .Init.Prescaler = IWDG_PRESCALER_4,
-  .Init.Reload = 4095
+  .Init.Reload = 800
 };
 
 void MW_SetIWDGPrescaler(uint32_t Prescaler){

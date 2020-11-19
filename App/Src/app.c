@@ -147,24 +147,24 @@ int appTask(void){
 	
 	int rc_analogdata = DD_RCGetRY(g_rc_data);
 
-	for(i=0;i<4;i++){
-		if(abs(rc_analogdata)==0){
-			g_md_h[i].mode = D_MMOD_FREE;
-    	  	g_md_h[i].duty = 0;
-    	}
-    	else{
-    	  if(rc_analogdata > 0){
-		/*前後の向き判定*/
-			g_md_h[i].mode = D_MMOD_FORWARD;
-    	  }
-    	  else{
-			g_md_h[i].mode = D_MMOD_BACKWARD;
-    	  }
-    	  /*絶対値を取りDutyに格納*/
-    	  	g_md_h[i].duty = abs(rc_analogdata) * MD_GAIN;
-    	}
-	}
-
+//	for(i=0;i<4;i++){
+//		if(abs(rc_analogdata)==0){
+//			g_md_h[i].mode = D_MMOD_FREE;
+//    	  	g_md_h[i].duty = 0;
+//    	}
+//    	else{
+//    	  if(rc_analogdata > 0){
+//		/*前後の向き判定*/
+//			g_md_h[i].mode = D_MMOD_FORWARD;
+//    	  }
+//    	  else{
+//			g_md_h[i].mode = D_MMOD_BACKWARD;
+//    	  }
+//    	  /*絶対値を取りDutyに格納*/
+//    	  	g_md_h[i].duty = abs(rc_analogdata) * MD_GAIN;
+//    	}
+//	}
+//
 	//manual_omni_suspension();
 	//duty_check();
 
@@ -396,6 +396,7 @@ int odmetry_position(int32_t position[3], bool adjust_flag[3], int32_t adjust_va
 	return 0;
 }
 
+#if DD_NUM_OF_MD
 static
 int auto_omni_suspension(int x, int y, int w, int max_duty){
 	const int cal_array[4][3] = {
@@ -447,6 +448,7 @@ int auto_omni_suspension(int x, int y, int w, int max_duty){
 
 	return EXIT_SUCCESS;
 }
+#endif
 
 static
 int duty_adjust(int duty, int omni_num){
@@ -483,6 +485,7 @@ int duty_adjust(int duty, int omni_num){
 	return (int)cal_duty;
 }
 
+#if DD_NUM_OF_MD
 static
 void all_motor_stop(void){
 	int i;
@@ -491,6 +494,7 @@ void all_motor_stop(void){
 		g_md_h[i].mode = D_MMOD_BRAKE;
 	}
 }
+#endif
 
 static
 void raspi_switch_ctrl(int switch_data[RASPI_SWITCH_NUM]){
@@ -509,6 +513,7 @@ void raspi_switch_ctrl(int switch_data[RASPI_SWITCH_NUM]){
 	}
 }
 
+#if DD_NUM_OF_MD
 static
 int manual_omni_suspension(void){
 	const int cal_array[4][3] = {
@@ -545,7 +550,9 @@ int manual_omni_suspension(void){
 
 	return EXIT_SUCCESS;
 }
+#endif
 
+#if DD_NUM_OF_MD
 static int duty_check(void){
 	static unsigned int count = 0;
 	static bool circle_flag = false, cross_flag = false;
@@ -572,3 +579,4 @@ static int duty_check(void){
 
 	return 0;
 }
+#endif

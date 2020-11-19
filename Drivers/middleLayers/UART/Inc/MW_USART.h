@@ -12,8 +12,8 @@
 
 typedef enum
 {
-	USART2ID = 1,
-	USART3ID = 2
+	USART2ID = 0,
+	USART3ID = 1
 }usartid_t;
 
 extern UART_HandleTypeDef huart2;
