@@ -16,6 +16,7 @@ typedef enum{
 extern volatile uint32_t g_SY_system_counter;
 extern volatile uint8_t g_rc_data[RC_DATA_NUM];
 extern volatile led_mode_t g_led_mode;
+static volatile unsigned int count_for_rc;
 extern volatile uint8_t raspi_control_rcv[8];
 
 void Error_Handler(void);

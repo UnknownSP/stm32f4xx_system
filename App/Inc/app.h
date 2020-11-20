@@ -7,7 +7,7 @@
 int appTask(void);
 int appInit(void);
 
-#define DD_NUM_OF_MD 0
+#define DD_NUM_OF_MD 4
 #define DD_NUM_OF_AB 0
 
 #define DD_NUM_OF_LD 0
@@ -20,7 +20,7 @@ int appInit(void);
 
 #define USE_RASPI_CONTROL 0
 #define RASPI_SWITCH_NUM 64
-#define DD_USE_RC 0
+#define DD_USE_RC 1
 
 #include "DD_RC.h"
 #include "DD_LD.h"

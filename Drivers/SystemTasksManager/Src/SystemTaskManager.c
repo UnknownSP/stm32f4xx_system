@@ -32,6 +32,10 @@ volatile uint8_t raspi_control_rcv[8] = {0,0,0,0,0,0,0,0};
 static uint8_t raspi_control_rcv_data[8] = {0,0,0,0,0,0,0,0};
 static bool raspi_control_flag = true;
 
+static int test = 0;
+static bool test_flag = false;
+static int test_count = 0;
+
 static
 int SY_init(void);
 static
@@ -53,8 +57,6 @@ int SY_doDevDriverTasks(void);
 
 int main(void){
   int ret,i,j;
-  //static int test = 0;
-  //static bool test_flag = false;
   //static char test_data[8] = {'A','B','C','d','f','g','G','\n'};
 
   //システムを初期化します
@@ -93,7 +95,19 @@ int main(void){
     //}
 
     //個々のアプリケーションの実行をします。
-    SY_doAppTasks();  //もしメッセージを出すタイミングであれば  //if((g_SY_system_counter % 1000 == 0) && test_flag){  //  if(test == 0){  //    MW_GPIOWrite(GPIOAID, GPIO_PIN_5 , GPIO_PIN_SET);  //    test = 1;  //  }else if(test == 1){  //    MW_GPIOWrite(GPIOAID, GPIO_PIN_5 , GPIO_PIN_RESET);  //    test = 0;  //  }  //  test_flag = false;  //}else{  //  test_flag = true;  //}
+    SY_doAppTasks();  //もしメッセージを出すタイミングであれば  
+    //if((g_SY_system_counter % 1000 <= 10) && test_flag){  
+    //  if(test == 0){  
+    //    MW_GPIOWrite(GPIOAID, GPIO_PIN_5 , GPIO_PIN_SET);  
+    //    test = 1;  
+    //  }else if(test == 1){  
+    //    MW_GPIOWrite(GPIOAID, GPIO_PIN_5 , GPIO_PIN_RESET);  
+    //    test = 0;  
+    //  }  
+    //  test_flag = false;  
+    //}else{  
+    //  test_flag = true;  
+    //}
     if( g_SY_system_counter % _MESSAGE_INTERVAL_MS < _INTERVAL_MS ){
 #if USE_RASPI_CONTROL
       if(raspi_control_flag){
@@ -128,12 +142,15 @@ int main(void){
       message("err", "Device Driver Tasks Faild%d", ret);
       return EXIT_FAILURE;
     }
-    //タイミング待ちを行います  while( g_SY_system_counter % _INTERVAL_MS != 0 ){  }
+    //タイミング待ちを行います  
+    while( g_SY_system_counter % _INTERVAL_MS != 0 ){  
+    }
     //もし一定時間以上応答がない場合はRCが切断されたとみなし、リセットをかけます。
 #if DD_USE_RC
     count_for_rc++;
     if(count_for_rc >= 20){
       message("err","RC disconnected!");
+      count_for_rc = 0;
 #if DD_NUM_OF_LD
       for(i=0;i<DD_NUM_OF_LD;i++){
 	for(j=0;j<8;j++){
@@ -414,7 +431,9 @@ static void SY_DMAInit(void)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle){
   UNUSED(UartHandle);
 #if DD_USE_RC
-  if(DD_RCTask(rc_rcv, (uint8_t*)g_rc_data)!=0)message("err","rc err");
+  if(DD_RCTask(rc_rcv, (uint8_t*)g_rc_data)!=0){
+    message("err","rc err");
+  }
   count_for_rc = 0;
 #endif
 #if USE_RASPI_CONTROL

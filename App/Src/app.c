@@ -102,7 +102,7 @@ int appTask(void){
 
 	//target_duty = (int)((double)target_count*(200.0/3.0));
 
-	odmetry_position(now_position, adjust_flag, adjust, false);
+	//odmetry_position(now_position, adjust_flag, adjust, false);
 
 	if(__RC_ISPRESSED_CIRCLE(g_rc_data)){
 		target_position[0] = 3000;
@@ -146,25 +146,30 @@ int appTask(void){
 	}
 	
 	int rc_analogdata = DD_RCGetRY(g_rc_data);
+	static int test_duty = 0;
 
-//	for(i=0;i<4;i++){
-//		if(abs(rc_analogdata)==0){
-//			g_md_h[i].mode = D_MMOD_FREE;
-//    	  	g_md_h[i].duty = 0;
-//    	}
-//    	else{
-//    	  if(rc_analogdata > 0){
-//		/*前後の向き判定*/
-//			g_md_h[i].mode = D_MMOD_FORWARD;
-//    	  }
-//    	  else{
-//			g_md_h[i].mode = D_MMOD_BACKWARD;
-//    	  }
-//    	  /*絶対値を取りDutyに格納*/
-//    	  	g_md_h[i].duty = abs(rc_analogdata) * MD_GAIN;
-//    	}
-//	}
-//
+	if(test_duty >= 10000){
+		test_duty = 0;
+	}
+	for(i=0;i<DD_NUM_OF_MD;i++){
+		if(abs(rc_analogdata)==0){
+			g_md_h[i].mode = D_MMOD_FREE;
+    	  	g_md_h[i].duty = 0;
+    	}
+    	else{
+			test_duty++;
+    	  	if(rc_analogdata > 0){
+			/*前後の向き判定*/
+				g_md_h[i].mode = D_MMOD_FORWARD;
+    	  	}
+    	  	else{
+				g_md_h[i].mode = D_MMOD_BACKWARD;
+    	  	}
+    	  	/*絶対値を取りDutyに格納*/
+    	  	g_md_h[i].duty = test_duty;//abs(rc_analogdata) * MD_GAIN;
+    	}
+	}
+
 	//manual_omni_suspension();
 	//duty_check();
 
@@ -489,7 +494,7 @@ int duty_adjust(int duty, int omni_num){
 static
 void all_motor_stop(void){
 	int i;
-	for(i=0;i<8;i++){
+	for(i=0;i<4;i++){
 		g_md_h[i].duty = 0;
 		g_md_h[i].mode = D_MMOD_BRAKE;
 	}

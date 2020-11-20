@@ -281,7 +281,7 @@ void DMA2_Stream1_IRQHandler(void)
   /* USER CODE END DMA2_Stream1_IRQn 0 */
   HAL_DMA_IRQHandler(huart3.hdmarx);
   /* USER CODE BEGIN DMA2_Stream1_IRQn 1 */
-
+  
   /* USER CODE END DMA2_Stream1_IRQn 1 */
 }
 
@@ -295,7 +295,7 @@ void DMA2_Stream6_IRQHandler(void)
   /* USER CODE END DMA2_Stream6_IRQn 0 */
   HAL_DMA_IRQHandler(huart3.hdmatx);
   /* USER CODE BEGIN DMA2_Stream6_IRQn 1 */
-
+  
   /* USER CODE END DMA2_Stream6_IRQn 1 */
 }
 

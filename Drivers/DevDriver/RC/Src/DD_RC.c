@@ -16,7 +16,7 @@ int DD_RCInit(uint8_t rc_data[RC_DATA_NUM], uint32_t timeout){
   uint32_t remaining;
   int ret;
 
-  MW_USARTSetBaudRate(USART3ID, _RC_BAUD);
+  //MW_USARTSetBaudRate(USART3ID, _RC_BAUD);
   ret = MW_USARTInit(USART3ID);
   if( ret ){
     return ret;
@@ -86,6 +86,10 @@ rc_error_t DD_RCTask(uint8_t rc_data[RC_DATA_NUM], uint8_t out_data[RC_DATA_NUM]
   }
   MW_USART3ReceiveMult(8, rc_data);
 
+  //if(ret != DD_RC_OK){
+  //  MW_GPIOWrite(0, GPIO_PIN_5 , GPIO_PIN_SET);
+  //}
+  
   return ret;
 }
 
