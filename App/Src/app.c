@@ -153,7 +153,7 @@ int appTask(void){
 	}
 	for(i=0;i<DD_NUM_OF_MD;i++){
 		if(abs(rc_analogdata)==0){
-			g_md_h[i].mode = D_MMOD_FREE;
+			g_md_h[i].mode = D_MMOD_FORWARD;
     	  	g_md_h[i].duty = 0;
     	}
     	else{
@@ -166,7 +166,7 @@ int appTask(void){
 				g_md_h[i].mode = D_MMOD_BACKWARD;
     	  	}
     	  	/*絶対値を取りDutyに格納*/
-    	  	g_md_h[i].duty = test_duty;//abs(rc_analogdata) * MD_GAIN;
+    	  	g_md_h[i].duty = abs(rc_analogdata) * MD_GAIN;
     	}
 	}
 
