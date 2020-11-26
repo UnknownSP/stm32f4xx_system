@@ -146,7 +146,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
   
     /* I2C2 DMA Init */
     /* I2C2_RX Init */
-    hdma_i2c2_rx.Instance = DMA1_Stream2;
+    hdma_i2c2_rx.Instance = DMA1_Stream3;
     hdma_i2c2_rx.Init.Channel = DMA_CHANNEL_7;
     hdma_i2c2_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
     hdma_i2c2_rx.Init.PeriphInc = DMA_PINC_DISABLE;
@@ -182,7 +182,11 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     __HAL_LINKDMA(hi2c,hdmatx,hdma_i2c2_tx);
 
   /* USER CODE BEGIN I2C2_MspInit 1 */
+    HAL_NVIC_SetPriority(I2C2_EV_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(I2C2_EV_IRQn);
 
+    HAL_NVIC_SetPriority(I2C2_ER_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(I2C2_ER_IRQn);
   /* USER CODE END I2C2_MspInit 1 */
   }
 

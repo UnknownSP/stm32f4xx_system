@@ -11,7 +11,7 @@ int appInit(void);
 #define DD_NUM_OF_AB 0
 
 #define DD_NUM_OF_LD 0
-#define DD_NUM_OF_SS 0
+#define DD_NUM_OF_SS 1
 #define DD_USE_ENCODER1 1
 #define DD_USE_ENCODER2 1
 #define DD_USE_ENCODER3 1

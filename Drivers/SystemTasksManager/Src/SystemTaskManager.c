@@ -57,6 +57,7 @@ int SY_doDevDriverTasks(void);
 
 int main(void){
   int ret,i,j;
+  static uint8_t test_data[8] = {};
   //static char test_data[8] = {'A','B','C','d','f','g','G','\n'};
 
   //システムを初期化します
@@ -109,6 +110,7 @@ int main(void){
     //  test_flag = true;  
     //}
     if( g_SY_system_counter % _MESSAGE_INTERVAL_MS < _INTERVAL_MS ){
+      //HAL_I2C_Master_Receive_DMA(&hi2c2, 0x1c << 1, (uint8_t*)test_data, 8);
 #if USE_RASPI_CONTROL
       if(raspi_control_flag){
         MW_USART2ReceiveMult(8, raspi_control_rcv_data);
@@ -127,6 +129,10 @@ int main(void){
       }
       MW_printf("\033[1;1H");//カーソルを(1,1)にセットして
       DD_RCPrint((uint8_t*)g_rc_data);//RCのハンドラを表示します
+      //for(i=0;i<8;i++){ 
+      //  MW_printf("[%4d]",test_data[i]); 
+      //}
+      //MW_printf("\n"); 
       DD_print();//各デバイスハンドラを表示します
       flush(); /* out message. */
     }
@@ -408,8 +414,8 @@ static void SY_DMAInit(void)
 
   /* DMA interrupt init */
   /* DMA1_Stream2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
   /* DMA1_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
@@ -449,13 +455,13 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle){
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c){
   UNUSED(hi2c);
   MW_I2C2TransitionCompletedCallBack();
-  DD_receive2SS();
+  //DD_receive2SS();
 }
 
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c){
   UNUSED(hi2c);
   MW_I2C2ReceptionCompletedCallBack();
-  DD_receive2SS();
+  //DD_receive2SS();
 }
 
 void Error_Handler(void)

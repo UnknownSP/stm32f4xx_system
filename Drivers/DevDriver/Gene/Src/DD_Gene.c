@@ -88,7 +88,7 @@ int DD_doTasks(void){
 #endif
 #if DD_NUM_OF_SS
   count++;
-  if(count >= 2){
+  if(count >= 1){
     for(i=0; i<DD_NUM_OF_SS; i++){
       ret = DD_SSPutReceiveRequest(i);
       if( ret ){
