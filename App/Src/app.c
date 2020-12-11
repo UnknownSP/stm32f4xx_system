@@ -14,47 +14,9 @@
 
 static char *testmode_name[] = {
   "MANUAL_SUSPENSION",
-  "AUTO_FIRSTMECHA_UP",
-  "AUTO_FIRSTMECHA_DOWN",
-  "AUTO_SHEETS",
-  "AUTO_SHEETS_1ZONE_RETURN",
-  "AUTO_TOWEL_ALL",
-  "AUTO_TOWEL_ALL_CLIP",
-  "AUTO_TOWEL_3",
-  "AUTO_TOWEL_2",
-  "AUTO_TOWEL_1",
-  "AUTO_SHEETS_TOWEL",
-  "AUTO_TEST",
   "NO_OPERATION",
   "STOP_EVERYTHING",
 };
-/********/
-static
-int duty_adjust(int duty, int omni_num);
-static
-int32_t absolute_distance(int32_t position[2]);
-static
-int auto_omni_suspension(int x, int y, int w, int max_duty);
-static
-int32_t go_to_target(int32_t target_position[3], int32_t now_position[3], bool not_stop);
-static
-Arm_MovingSituation_t arm_spin_to_target(Arm_MovingTarget_t target, bool reset);
-static
-int odmetry_position(int32_t position[3], bool adjust_flag[3], int32_t adjust_value[3], bool reset);
-static
-int manual_omni_suspension(void);
-static
-int spin_xy_point(int32_t xy_point[2], double degree);
-static 
-int duty_check(void);
-static
-void raspi_switch_ctrl(int switch_data[RASPI_SWITCH_NUM]);
-static
-void all_motor_stop(void);
-static 
-int ABSystem(void);
-static
-int LEDSystem(void);
 /*メモ
  *g_ab_h...ABのハンドラ
  *g_md_h...MDのハンドラ
@@ -102,7 +64,7 @@ int appTask(void){
 
 	//target_duty = (int)((double)target_count*(200.0/3.0));
 
-	//odmetry_position(now_position, adjust_flag, adjust, false);
+	get_odmetry_position(now_position);
 
 	if(__RC_ISPRESSED_CIRCLE(g_rc_data)){
 		target_position[0] = 3000;
@@ -139,38 +101,50 @@ int appTask(void){
 		adjust[0] = 0;
 		adjust[1] = 0;
 		adjust[2] = 0;
-		odmetry_position(now_position, adjust_flag, adjust, false);
+		adjust_odmetry_position(adjust_flag[0],adjust_flag[1],adjust_flag[2],adjust);
 		adjust_flag[0] = false;
 		adjust_flag[1] = false;
 		adjust_flag[2] = false;
 	}
 	
 	int rc_analogdata = DD_RCGetRY(g_rc_data);
+	static bool triangle_flag = false;
 	static int test_duty = 0;
+	static int motor_test = 0;
+
+	if(!__RC_ISPRESSED_TRIANGLE(g_rc_data)) triangle_flag = true;
+
+	if(__RC_ISPRESSED_TRIANGLE(g_rc_data) && triangle_flag){ 
+		motor_test++;
+		if(motor_test >= 4){
+			motor_test = 0;
+		}
+		triangle_flag = false;
+	}
 
 	if(test_duty >= 10000){
 		test_duty = 0;
 	}
-	for(i=0;i<DD_NUM_OF_MD;i++){
-		if(abs(rc_analogdata)==0){
-			g_md_h[i].mode = D_MMOD_FORWARD;
-    	  	g_md_h[i].duty = 0;
-    	}
-    	else{
-			test_duty++;
-    	  	if(rc_analogdata > 0){
-			/*前後の向き判定*/
-				g_md_h[i].mode = D_MMOD_FORWARD;
-    	  	}
-    	  	else{
-				g_md_h[i].mode = D_MMOD_BACKWARD;
-    	  	}
-    	  	/*絶対値を取りDutyに格納*/
-    	  	g_md_h[i].duty = abs(rc_analogdata) * MD_GAIN;
-    	}
-	}
+	//for(i=0;i<DD_NUM_OF_MD;i++){
+	//if(abs(rc_analogdata)==0){
+	//	g_md_h[motor_test].mode = D_MMOD_FORWARD;
+    //  	g_md_h[motor_test].duty = 0;
+    //}
+    //else{
+	//	test_duty++;
+    //  	if(rc_analogdata > 0){
+	//	/*前後の向き判定*/
+	//		g_md_h[motor_test].mode = D_MMOD_FORWARD;
+    //  	}
+    //  	else{
+	//		g_md_h[motor_test].mode = D_MMOD_BACKWARD;
+    //  	}
+    //  	/*絶対値を取りDutyに格納*/
+    //  	g_md_h[motor_test].duty = abs(rc_analogdata) * MD_GAIN;
+    //}
+	//}
 
-	//manual_omni_suspension();
+	manual_omni_suspension();
 	//duty_check();
 
 	/*if( g_SY_system_counter % _MESSAGE_INTERVAL_MS < _INTERVAL_MS ){
@@ -319,23 +293,6 @@ int32_t absolute_distance(int32_t position[2]){
 }
 
 static
-Arm_MovingSituation_t arm_spin_to_target(Arm_MovingTarget_t target, bool reset){
-	const target_to_degree[6] = {FALL_MECHA_ENC,NEAR_ROBOT_ENC,UNE_150_ENC,UNE_200_ENC,UNE_250_ENC,NEAR_UNE_ENC};
-	Arm_MovingSituation_t return_situation;
-	int32_t encoder_val = DD_encoder1Get_int32();
-	static int degree_to_target;
-
-
-	if(reset){
-		DD_encoder1reset();
-		return RESET_ARM_FUNC;
-	}
-
-	degree_to_target = encoder_val-target_to_degree[target]; //マイナスなら、右回転
-
-}
-
-static
 int spin_xy_point(int32_t xy_point[2], double degree /*普通の角度180.0*/){
 	int32_t recent_point[2];
 	double rad;
@@ -350,8 +307,214 @@ int spin_xy_point(int32_t xy_point[2], double degree /*普通の角度180.0*/){
 	return 0;
 }
 
+void only_odmetry_position(void){
+	static int32_t temp[3] = {};
+	static bool adj_temp[3] = {};
+	odmetry_position(temp,true,adj_temp,temp,false);
+}
+
 static
-int odmetry_position(int32_t position[3], bool adjust_flag[3], int32_t adjust_value[3], bool reset){
+void get_odmetry_position(int32_t position[3]){
+	static int32_t temp[3] = {};
+	static bool adj_temp[3] = {};
+	odmetry_position(position,false,adj_temp,temp,false);
+}
+
+static
+void adjust_odmetry_position(bool x, bool y, bool z,int32_t adj_position[3]){
+	static int32_t temp[3] = {};
+	static bool adj_flag[3] = {};
+	adj_flag[0] = x;
+	adj_flag[1] = y;
+	adj_flag[2] = z;
+	odmetry_position(temp,false,adj_flag,adj_position,false);
+}
+
+static
+int odmetry_position(int32_t position[3], bool odmetry_only, bool adjust_flag[3], int32_t adjust_value[3], bool reset){
+
+	/*
+	position[0] = x position (unit: mm)
+	position[1] = y position (unit: mm)
+	position[0] = w position (unit: *100 degree) (ex: 90 deg -> 9000)
+	*/
+
+	static double temp_posi[3] = {0.0, 0.0, 0.0};
+	static double now_posi_enc[3] = {0.0, 0.0, 0.0};
+	static double now_posi_dist[3] = {0.0, 0.0, 0.0};
+	static double recent_posi[3] = {0.0, 0.0, 0.0};
+	static double recent_posi_rad = 0.0;
+
+	static int32_t adjust[3] = {};
+	bool adjusted = false;
+	int i;
+
+	if(!odmetry_only){
+		if(reset){
+			for(i=0; i<3; i++){
+				position[i] = 0.0;
+				temp_posi[i] = 0.0;
+				now_posi_enc[i] = 0.0;
+				now_posi_dist[i] = 0.0;
+				recent_posi[i] = 0.0;
+			}
+			recent_posi_rad = 0.0;
+			return 0;
+		}
+
+		for(i=0; i<3; i++){
+			if(adjust_flag[i]){
+				position[i] = adjust_value[i];
+				if(i==2){
+					recent_posi[2] = adjust_value[2] * (4736.0/27.0);
+				}else{
+					recent_posi[i] = adjust_value[i] * (512.0/(3.0*M_PI));
+				}
+				adjusted = true;
+			}
+		}
+		if(adjusted){
+			return 0;
+		}
+	}
+
+	Encoder_Update(0,true);
+	temp_posi[0] = 0.5 * (double)(-Encoder_Get_Value(F_ENC)+Encoder_Get_Value(B_ENC));
+	temp_posi[1] = 0.5 * (double)(Encoder_Get_Value(R_ENC)-Encoder_Get_Value(L_ENC));
+	temp_posi[2] = 0.25 * -(double)(Encoder_Get_Value(F_ENC)+Encoder_Get_Value(B_ENC)+Encoder_Get_Value(R_ENC)+Encoder_Get_Value(L_ENC));
+	Encoder_Reset_Value(0,true);
+
+	recent_posi_rad = recent_posi[2] * (3.0/94720.0) * M_PI;
+	now_posi_enc[0] = recent_posi[0] + temp_posi[0]*cos(recent_posi_rad) + temp_posi[1]*sin(recent_posi_rad);
+	now_posi_enc[1] = recent_posi[1] - temp_posi[0]*cos(recent_posi_rad) + temp_posi[1]*sin(recent_posi_rad);
+	now_posi_enc[2] = recent_posi[2] + temp_posi[2];
+	/*
+	diameter of encoder wheel       = 48mm
+	distance of encoder to encoder  = 370mm
+	pulse per revolution            = 2048 * 4 = 8192
+
+	(now_posi[2])/{(370*pi)/(48*pi) * 8192} * 2pi
+	= now_posi[2] * (3.0/94720.0) * pi
+	*/
+
+	for(i=0;i<3;i++){
+		recent_posi[i] = now_posi_enc[i];
+	}
+
+	if(odmetry_only){
+		return 0;
+	}
+
+	for(i=0;i<2;i++){
+		now_posi_dist[i] = now_posi_enc[2] * (3.0/512.0) * M_PI;
+	}
+	/*
+	wheel diameter = 48mm
+	ppr            = 8192
+	now_posi[2] * (48*pi/8192)
+	= now_posi[2] * (3.0/512.0) * pi
+	*/
+	now_posi_dist[2] = now_posi_enc[2] * (27.0/4736.0);
+	/*
+	diameter of encoder wheel       = 48mm
+	distance of encoder to encoder  = 370mm
+	pulse per revolution            = 2048 * 4 = 8192
+
+	(now_posi[2])/{(370*pi)/(48*pi) * 8192} * 360
+	= now_posi[2] * (27.0/4736.0)
+	*/
+	now_posi_dist[2] = fmod(now_posi_dist[2],360.0);
+	if(fabs(now_posi_dist[2]) >= 180.000){
+        if(now_posi_dist[2] >= 0.0000000){
+            now_posi_dist[2] -= 360.000;
+        }else{
+            now_posi_dist[2] += 360.000;
+        }
+    }
+    for(i=0; i<2; i++){
+        position[i] = (int32_t)now_posi_dist[i];
+    }
+	position[2] = (int32_t)(now_posi_dist[2] * 100.0);
+	
+	if( g_SY_system_counter % _MESSAGE_INTERVAL_MS < _INTERVAL_MS ){
+		MW_printf("\nposition[x][y][w] : [%10d][%10d][%4d.%2d]\n",position[0],position[1],position[2]/100,abs(position[2]%100));
+	}
+
+	return 0;
+}
+
+static
+int Encoder_Update(int enc_num, bool all_update){
+	if(all_update){
+		DD_encoder1update();
+		DD_encoder2update();
+		DD_encoder3update();
+		DD_encoder4update();
+		return 0;
+	}
+	switch (enc_num){
+	case 0:
+		DD_encoder1update();
+		break;
+	case 1:
+		DD_encoder2update();
+		break;
+	case 2:
+		DD_encoder3update();
+		break;
+	case 3:
+		DD_encoder4update();
+		break;
+	}
+	return 0;
+}
+
+static
+int32_t Encoder_Get_Value(int enc_num){
+	switch (enc_num){
+	case 0:
+		return DD_encoder1Get_int32();
+		break;
+	case 1:
+		return DD_encoder2Get_int32();
+		break;
+	case 2:
+		return DD_encoder3Get_int32();
+		break;
+	case 3:
+		return DD_encoder4Get_int32();
+		break;
+	}
+}
+
+static
+int Encoder_Reset_Value(int enc_num, bool all_reset){
+	if(all_reset){
+		DD_encoder1reset();
+		DD_encoder2reset();
+		DD_encoder3reset();
+		DD_encoder4reset();
+		return 0;
+	}
+	switch (enc_num){
+	case 0:
+		DD_encoder1reset();
+		break;
+	case 1:
+		DD_encoder2reset();
+		break;
+	case 2:
+		DD_encoder3reset();
+		break;
+	case 3:
+		DD_encoder4reset();
+		break;
+	}
+	return 0;
+}
+
+static
+int odmetry_position_i2c(int32_t position[3], bool adjust_flag[3], int32_t adjust_value[3], bool reset){
 
 	static int32_t adjust[3] = {};
 	bool adjusted = false;

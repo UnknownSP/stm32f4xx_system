@@ -1,6 +1,11 @@
 #ifndef __APP_H
 #define __APP_H
 
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <math.h>
+
 /*NO Device mode*/
 #define _NO_DEVICE 0
 
@@ -22,6 +27,44 @@ int appInit(void);
 #define RASPI_SWITCH_NUM 64
 #define DD_USE_RC 1
 
+void only_odmetry_position(void);
+static
+void get_odmetry_position(int32_t position[3]);
+static
+void adjust_odmetry_position(bool x, bool y, bool z,int32_t adj_position[3]);
+static
+int Encoder_Update(int enc_num,bool all_update);
+static
+int32_t Encoder_Get_Value(int enc_num);
+static
+int Encoder_Reset_Value(int enc_num, bool all_reset);
+static
+int duty_adjust(int duty, int omni_num);
+static
+int32_t absolute_distance(int32_t position[2]);
+static
+int auto_omni_suspension(int x, int y, int w, int max_duty);
+static
+int32_t go_to_target(int32_t target_position[3], int32_t now_position[3], bool not_stop);
+static
+int odmetry_position(int32_t position[3], bool odmetry_only, bool adjust_flag[3], int32_t adjust_value[3], bool reset);
+static
+int odmetry_position_i2c(int32_t position[3], bool adjust_flag[3], int32_t adjust_value[3], bool reset);
+static
+int manual_omni_suspension(void);
+static
+int spin_xy_point(int32_t xy_point[2], double degree);
+static 
+int duty_check(void);
+static
+void raspi_switch_ctrl(int switch_data[RASPI_SWITCH_NUM]);
+static
+void all_motor_stop(void);
+static 
+int ABSystem(void);
+static
+int LEDSystem(void);
+
 #include "DD_RC.h"
 #include "DD_LD.h"
 #include "DD_MD.h"
@@ -29,6 +72,11 @@ int appInit(void);
 #include "DD_SS.h"
 
 #define I2C_ODMETRY 0
+
+#define R_ENC 1
+#define L_ENC 3
+#define F_ENC 0
+#define B_ENC 2
 
 #define R_F_KUDO_MD 0
 #define R_B_KUDO_MD 1
@@ -238,7 +286,6 @@ typedef enum{
   GETTING_END = 2,
   GETTING_RECET = 3,
 }GetObject_t;
-
 
 #endif
 

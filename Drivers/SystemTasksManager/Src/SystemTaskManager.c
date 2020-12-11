@@ -138,6 +138,7 @@ int main(void){
     }
     //タイミング待ちを行います
     while( g_SY_system_counter % _INTERVAL_MS != _INTERVAL_MS / 2 - 1 ){
+      only_odmetry_position();
     }
 #if !_NO_DEVICE
     //デバイスがあれば、各デバイスタスクを実行します。これはハンドラに格納されているデータをMDに転送する内容などが含まれます。
@@ -149,7 +150,8 @@ int main(void){
       return EXIT_FAILURE;
     }
     //タイミング待ちを行います  
-    while( g_SY_system_counter % _INTERVAL_MS != 0 ){  
+    while( g_SY_system_counter % _INTERVAL_MS != 0 ){
+      only_odmetry_position();
     }
     //もし一定時間以上応答がない場合はRCが切断されたとみなし、リセットをかけます。
 #if DD_USE_RC
