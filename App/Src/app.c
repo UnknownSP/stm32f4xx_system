@@ -42,6 +42,7 @@ int appTask(void){
 	static unsigned int target_count = 0;
 	static bool circle_flag = false, cross_flag = false;
 	static int target_duty=0,duty;
+	static int test_deg = 0;
 
 	int32_t adjust[3] = {};
 	bool adjust_flag[3] = {false, false, false};
@@ -66,33 +67,73 @@ int appTask(void){
 
 	get_odmetry_position(now_position);
 
-	if(__RC_ISPRESSED_CIRCLE(g_rc_data)){
-		target_position[0] = 3000;
-		target_position[1] = 0;
-		target_position[2] = 18000;
+	test_deg = now_position[2] + 5000;
+	if(test_deg >= 36000){
+		test_deg = 0;
 	}
-	if(__RC_ISPRESSED_CROSS(g_rc_data)){
-		target_position[0] = 1500;
-		target_position[1] = -300;
-		target_position[2] = 9000;
-	}
-	if(__RC_ISPRESSED_SQARE(g_rc_data)){
-		target_position[0] = -3000;
-		target_position[1] = 0;
-		target_position[2] = 18000;
-	}
-	if(__RC_ISPRESSED_TRIANGLE(g_rc_data)){
-		target_position[0] = -3000;
-		target_position[1] = 800;
-		target_position[2] = 18000;
-	}
-	if(__RC_ISPRESSED_L1(g_rc_data)){
-		target_position[0] = 0;
-		target_position[1] = 500;
-		target_position[2] = 0;
+	if(test_deg >= 18000){
+		test_deg = -36000 + test_deg;
 	}
 
-	//go_to_target(target_position,now_position,false);
+	target_position[0] = 0;
+	target_position[1] = 0;
+	target_position[2] = 0;
+
+	/*if(__RC_ISPRESSED_CIRCLE(g_rc_data)){
+		target_position[0] = 1000;
+		target_position[1] = 2000;
+		target_position[2] = test_deg;
+	}
+	if(__RC_ISPRESSED_CROSS(g_rc_data)){
+		target_position[0] = 1000;
+		target_position[1] = -2000;
+		target_position[2] = test_deg;
+	}
+	if(__RC_ISPRESSED_SQARE(g_rc_data)){
+		target_position[0] = -1000;
+		target_position[1] = -2000;
+		target_position[2] = test_deg;
+	}
+	if(__RC_ISPRESSED_TRIANGLE(g_rc_data)){
+		target_position[0] = -1000;
+		target_position[1] = 2000;
+		target_position[2] = test_deg;
+	}
+	target_position[2] = 0;
+	*/
+	if(__RC_ISPRESSED_CIRCLE(g_rc_data)){
+		target_position[0] = 1000;
+		target_position[1] = 2500;
+		target_position[2] = 17900;
+	}
+	if(__RC_ISPRESSED_CROSS(g_rc_data)){
+		target_position[0] = -1000;
+		target_position[1] = -2500;
+		target_position[2] = 0;
+	}
+	if(__RC_ISPRESSED_SQARE(g_rc_data)){
+		target_position[0] = -1000;
+		target_position[1] = 2500;
+		target_position[2] = 0;
+	}
+	if(__RC_ISPRESSED_TRIANGLE(g_rc_data)){
+		target_position[0] = 0;
+		target_position[1] = 10000;
+		target_position[2] = 0;
+	}
+	
+	if(__RC_ISPRESSED_L1(g_rc_data)){
+		target_position[0] = 0;
+		target_position[1] = 2500;
+		target_position[2] = test_deg;
+	}
+	if(__RC_ISPRESSED_R1(g_rc_data)){
+		target_position[0] = 0;
+		target_position[1] = 0;
+		target_position[2] = test_deg;
+	}
+
+	go_to_target(target_position,now_position,false);
 
 	if(__RC_ISPRESSED_L2(g_rc_data)){
 		adjust_flag[0] = true;
@@ -107,24 +148,24 @@ int appTask(void){
 		adjust_flag[2] = false;
 	}
 	
-	int rc_analogdata = DD_RCGetRY(g_rc_data);
-	static bool triangle_flag = false;
-	static int test_duty = 0;
-	static int motor_test = 0;
-
-	if(!__RC_ISPRESSED_TRIANGLE(g_rc_data)) triangle_flag = true;
-
-	if(__RC_ISPRESSED_TRIANGLE(g_rc_data) && triangle_flag){ 
-		motor_test++;
-		if(motor_test >= 4){
-			motor_test = 0;
-		}
-		triangle_flag = false;
-	}
-
-	if(test_duty >= 10000){
-		test_duty = 0;
-	}
+	//int rc_analogdata = DD_RCGetRY(g_rc_data);
+	//static bool triangle_flag = false;
+	//static int test_duty = 0;
+	//static int motor_test = 0;
+//
+	//if(!__RC_ISPRESSED_TRIANGLE(g_rc_data)) triangle_flag = true;
+//
+	//if(__RC_ISPRESSED_TRIANGLE(g_rc_data) && triangle_flag){ 
+	//	motor_test++;
+	//	if(motor_test >= 4){
+	//		motor_test = 0;
+	//	}
+	//	triangle_flag = false;
+	//}
+//
+	//if(test_duty >= 10000){
+	//	test_duty = 0;
+	//}
 	//for(i=0;i<DD_NUM_OF_MD;i++){
 	//if(abs(rc_analogdata)==0){
 	//	g_md_h[motor_test].mode = D_MMOD_FORWARD;
@@ -144,7 +185,7 @@ int appTask(void){
     //}
 	//}
 
-	manual_omni_suspension();
+	//manual_omni_suspension();
 	//duty_check();
 
 	/*if( g_SY_system_counter % _MESSAGE_INTERVAL_MS < _INTERVAL_MS ){
@@ -384,9 +425,10 @@ int odmetry_position(int32_t position[3], bool odmetry_only, bool adjust_flag[3]
 	temp_posi[2] = 0.25 * -(double)(Encoder_Get_Value(F_ENC)+Encoder_Get_Value(B_ENC)+Encoder_Get_Value(R_ENC)+Encoder_Get_Value(L_ENC));
 	Encoder_Reset_Value(0,true);
 
-	recent_posi_rad = recent_posi[2] * (3.0/94720.0) * M_PI;
+	//recent_posi_rad = recent_posi[2] * (3.0/94720.0) * M_PI;
+	recent_posi_rad = (recent_posi[2] /*+ temp_posi[2]/2.0*/) * (3.0/94720.0) * M_PI;
 	now_posi_enc[0] = recent_posi[0] + temp_posi[0]*cos(recent_posi_rad) + temp_posi[1]*sin(recent_posi_rad);
-	now_posi_enc[1] = recent_posi[1] - temp_posi[0]*cos(recent_posi_rad) + temp_posi[1]*sin(recent_posi_rad);
+	now_posi_enc[1] = recent_posi[1] - temp_posi[0]*sin(recent_posi_rad) + temp_posi[1]*cos(recent_posi_rad);
 	now_posi_enc[2] = recent_posi[2] + temp_posi[2];
 	/*
 	diameter of encoder wheel       = 48mm
@@ -406,7 +448,7 @@ int odmetry_position(int32_t position[3], bool odmetry_only, bool adjust_flag[3]
 	}
 
 	for(i=0;i<2;i++){
-		now_posi_dist[i] = now_posi_enc[2] * (3.0/512.0) * M_PI;
+		now_posi_dist[i] = now_posi_enc[i] * (3.0/512.0) * M_PI;
 	}
 	/*
 	wheel diameter = 48mm
@@ -437,7 +479,8 @@ int odmetry_position(int32_t position[3], bool odmetry_only, bool adjust_flag[3]
 	position[2] = (int32_t)(now_posi_dist[2] * 100.0);
 	
 	if( g_SY_system_counter % _MESSAGE_INTERVAL_MS < _INTERVAL_MS ){
-		MW_printf("\nposition[x][y][w] : [%10d][%10d][%4d.%2d]\n",position[0],position[1],position[2]/100,abs(position[2]%100));
+		MW_printf("Time[ms] : %10d\n",g_SY_system_counter);
+		MW_printf("position[ %10d %10d %4d.%02d ]",position[0],position[1],position[2]/100,abs(position[2]%100));
 	}
 
 	return 0;

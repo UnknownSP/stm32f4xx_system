@@ -96,7 +96,7 @@ int main(void){
     //}
 
     //個々のアプリケーションの実行をします。
-    SY_doAppTasks();  //もしメッセージを出すタイミングであれば  
+    SY_doAppTasks(); 
     //if((g_SY_system_counter % 1000 <= 10) && test_flag){  
     //  if(test == 0){  
     //    MW_GPIOWrite(GPIOAID, GPIO_PIN_5 , GPIO_PIN_SET);  
@@ -124,16 +124,16 @@ int main(void){
 	      raspi_control_rcv[i] = raspi_control_rcv_data[i];
 	    }
 #endif
-      if( g_SY_system_counter % 1000 == 0){
-	      MW_printf("\033[2J");
-      }
+      //if( g_SY_system_counter % 1000 == 0){
+	    //  MW_printf("\033[2J");
+      //}
       MW_printf("\033[1;1H");//カーソルを(1,1)にセットして
-      DD_RCPrint((uint8_t*)g_rc_data);//RCのハンドラを表示します
+      //DD_RCPrint((uint8_t*)g_rc_data);//RCのハンドラを表示します
       //for(i=0;i<8;i++){ 
       //  MW_printf("[%4d]",test_data[i]); 
       //}
       //MW_printf("\n"); 
-      DD_print();//各デバイスハンドラを表示します
+      //DD_print();//各デバイスハンドラを表示します
       flush(); /* out message. */
     }
     //タイミング待ちを行います
