@@ -385,6 +385,9 @@ int odmetry_position(int32_t position[3], bool odmetry_only, bool adjust_flag[3]
 	static double now_posi_dist[3] = {0.0, 0.0, 0.0};
 	static double recent_posi[3] = {0.0, 0.0, 0.0};
 	static double recent_posi_rad = 0.0;
+	double now_posi_rad = 0.0;
+
+	double sinc = 0.0;
 
 	static int32_t adjust[3] = {};
 	bool adjusted = false;
@@ -426,9 +429,15 @@ int odmetry_position(int32_t position[3], bool odmetry_only, bool adjust_flag[3]
 	Encoder_Reset_Value(0,true);
 
 	//recent_posi_rad = recent_posi[2] * (3.0/94720.0) * M_PI;
-	recent_posi_rad = (recent_posi[2] /*+ temp_posi[2]/2.0*/) * (3.0/94720.0) * M_PI;
-	now_posi_enc[0] = recent_posi[0] + temp_posi[0]*cos(recent_posi_rad) + temp_posi[1]*sin(recent_posi_rad);
-	now_posi_enc[1] = recent_posi[1] - temp_posi[0]*sin(recent_posi_rad) + temp_posi[1]*cos(recent_posi_rad);
+	now_posi_rad = (temp_posi[2]/2.0) * (3.0/94720.0) * M_PI;
+	if(now_posi_rad < 0.02){
+		sinc = 1.0;
+	}else{
+		sinc = sin(now_posi_rad)/now_posi_rad;
+	}
+	recent_posi_rad = (recent_posi[2] + temp_posi[2]/2.0) * (3.0/94720.0) * M_PI;
+	now_posi_enc[0] = recent_posi[0] + temp_posi[0]*cos(recent_posi_rad)*sinc + temp_posi[1]*sin(recent_posi_rad)*sinc;
+	now_posi_enc[1] = recent_posi[1] - temp_posi[0]*sin(recent_posi_rad)*sinc + temp_posi[1]*cos(recent_posi_rad)*sinc;
 	now_posi_enc[2] = recent_posi[2] + temp_posi[2];
 	/*
 	diameter of encoder wheel       = 48mm
